@@ -25,7 +25,11 @@ export default async function PostsPage() {
   try {
     const client = getServerClient()
     const [{ data }, fetchedStats] = await Promise.all([
-      client.from("posts").select("*").eq("status", PostStatus.PENDING).order("created_at", { ascending: false }),
+      client
+        .from("posts")
+        .select("*")
+        .in("status", [PostStatus.PENDING, PostStatus.APPROVED])
+        .order("created_at", { ascending: false }),
       fetchStats(client),
     ])
     posts = (data ?? []) as Post[]
@@ -59,15 +63,32 @@ export default async function PostsPage() {
 
       {posts.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 text-gray-600">
-          <p className="text-lg">No pending posts</p>
+          <p className="text-lg">No posts to review</p>
           <p className="text-sm mt-1">Run the pipeline to generate new content</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {posts.map(post => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
+        <>
+          {posts.some(p => p.status === PostStatus.PENDING) && (
+            <div className="mb-2">
+              <p className="text-xs text-yellow-400 font-semibold uppercase tracking-widest mb-3">Pending review</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {posts.filter(p => p.status === PostStatus.PENDING).map(post => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+            </div>
+          )}
+          {posts.some(p => p.status === PostStatus.APPROVED) && (
+            <div className={posts.some(p => p.status === PostStatus.PENDING) ? "mt-8" : ""}>
+              <p className="text-xs text-emerald-400 font-semibold uppercase tracking-widest mb-3">Approved — awaiting schedule</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {posts.filter(p => p.status === PostStatus.APPROVED).map(post => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
