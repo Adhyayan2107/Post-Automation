@@ -1,36 +1,45 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import "./globals.css"
+import { NavLink } from "@/components/NavLink"
 
 export const metadata: Metadata = {
-  title: "EduBot Dashboard",
+  title: "EduBot",
   description: "Review and schedule automated education posts",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full dark">
-      <body className="h-full flex bg-gray-950 text-gray-100">
-        <aside className="w-52 shrink-0 border-r border-gray-800 flex flex-col pt-6 px-4 gap-1">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest px-2 mb-3">
-            EduBot
-          </span>
-          <NavLink href="/posts">Post Queue</NavLink>
-          <NavLink href="/schedule">Schedule</NavLink>
+    <html lang="en" className="h-full">
+      <body className="h-full flex bg-[#0a0a0f] text-gray-100 antialiased">
+        <aside className="w-56 shrink-0 border-r border-white/5 flex flex-col">
+          {/* Logo */}
+          <div className="px-5 pt-6 pb-4 border-b border-white/5">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <span className="text-emerald-400 text-sm font-bold">E</span>
+              </div>
+              <span className="font-semibold text-white text-sm tracking-tight">EduBot</span>
+            </div>
+          </div>
+
+          {/* Nav */}
+          <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
+            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest px-2 mb-2">Content</p>
+            <NavLink href="/posts">Post Queue</NavLink>
+            <NavLink href="/schedule">Schedule</NavLink>
+          </nav>
+
+          {/* Footer hint */}
+          <div className="px-5 py-4 border-t border-white/5">
+            <p className="text-[10px] text-gray-600 leading-relaxed">
+              Run pipeline:<br />
+              <code className="text-gray-500">uv run python scripts/mini_run.py</code>
+            </p>
+          </div>
         </aside>
-        <main className="flex-1 overflow-y-auto p-8">{children}</main>
+
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </body>
     </html>
-  )
-}
-
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="px-3 py-2 rounded text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-    >
-      {children}
-    </Link>
   )
 }

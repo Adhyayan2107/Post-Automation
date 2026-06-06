@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import { getServerClient } from "@/lib/supabase"
 import { Post } from "@/lib/types"
 import { StatusBadge } from "@/components/StatusBadge"
@@ -21,52 +22,67 @@ export default async function PostDetailPage({
   const post = data as Post
 
   return (
-    <div className="max-w-3xl">
-      <div className="flex items-start justify-between gap-4 mb-6">
+    <div className="p-8 max-w-2xl mx-auto">
+      {/* Back */}
+      <Link
+        href="/posts"
+        className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-300 mb-6 transition-colors"
+      >
+        ← Back to posts
+      </Link>
+
+      {/* Title + status */}
+      <div className="flex items-start justify-between gap-4 mb-5">
         <h1 className="text-xl font-bold text-white leading-snug">{post.title}</h1>
         <StatusBadge status={post.status} />
       </div>
 
-      {post.image_url && (
-        <div className="relative h-56 w-full rounded-lg overflow-hidden mb-6 border border-gray-800">
-          <Image src={post.image_url} alt={post.title} fill className="object-cover" unoptimized />
-        </div>
-      )}
-
-      <div className="flex gap-2 flex-wrap mb-6">
-        <span className={`text-xs px-2 py-0.5 rounded border ${
+      {/* Meta pills */}
+      <div className="flex gap-2 flex-wrap mb-5">
+        <span className={`text-xs px-2 py-1 rounded-md font-medium ${
           post.post_type === "educational"
-            ? "bg-sky-500/10 text-sky-400 border-sky-500/20"
-            : "bg-pink-500/10 text-pink-400 border-pink-500/20"
+            ? "bg-sky-500/15 text-sky-400"
+            : "bg-pink-500/15 text-pink-400"
         }`}>
           {post.post_type}
         </span>
         {post.creative_angle && (
-          <span className="text-xs px-2 py-0.5 rounded border bg-orange-500/10 text-orange-400 border-orange-500/20">
+          <span className="text-xs px-2 py-1 rounded-md font-medium bg-orange-500/15 text-orange-400">
             {post.creative_angle}
           </span>
         )}
-        {post.target_subreddits.map(sub => (
-          <span key={sub} className="text-xs px-2 py-0.5 rounded border bg-gray-800 text-gray-400 border-gray-700">
-            {sub}
+        {post.target_platforms.map(p => (
+          <span key={p} className={`text-xs px-2 py-1 rounded-md font-medium ${
+            p === "reddit" ? "bg-orange-500/15 text-orange-400" : "bg-indigo-500/15 text-indigo-400"
+          }`}>
+            {p}
           </span>
         ))}
-        {post.target_platforms.map(p => (
-          <span key={p} className="text-xs px-2 py-0.5 rounded border bg-gray-800 text-gray-500 border-gray-700">
-            {p}
+        {post.target_subreddits.map(sub => (
+          <span key={sub} className="text-xs px-2 py-1 rounded-md bg-white/5 text-gray-400">
+            {sub}
           </span>
         ))}
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 mb-6">
+      {/* Image */}
+      {post.image_url && (
+        <div className="relative h-52 w-full rounded-xl overflow-hidden mb-5 border border-white/8">
+          <Image src={post.image_url} alt={post.title} fill className="object-cover" unoptimized />
+        </div>
+      )}
+
+      {/* Body */}
+      <div className="bg-white/3 border border-white/6 rounded-xl p-5 mb-5">
         <pre className="whitespace-pre-wrap text-sm text-gray-300 font-sans leading-relaxed">
           {post.body}
         </pre>
       </div>
 
+      {/* Sources */}
       {post.source_urls.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Sources</h2>
+        <div className="mb-5">
+          <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest mb-2">Sources</p>
           <ul className="flex flex-col gap-1">
             {post.source_urls.map(url => (
               <li key={url}>
@@ -84,7 +100,8 @@ export default async function PostDetailPage({
         </div>
       )}
 
-      <div className="border-t border-gray-800 pt-6">
+      {/* Actions */}
+      <div className="border-t border-white/6 pt-5">
         <ApprovalButtons post={post} />
       </div>
     </div>
