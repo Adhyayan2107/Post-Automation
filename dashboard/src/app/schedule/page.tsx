@@ -23,13 +23,17 @@ export default async function SchedulePage({
 
   const client = getServerClient()
   const [{ data }, { data: unslottedData }] = await Promise.all([
+    // Include approved posts that already have a slot — they stay on the
+    // calendar even if the user re-approves them after scheduling.
     client
       .from("posts")
       .select("*")
-      .in("status", [PostStatus.SCHEDULED, PostStatus.PUBLISHED])
+      .in("status", [PostStatus.APPROVED, PostStatus.SCHEDULED, PostStatus.PUBLISHED])
+      .not("scheduled_at", "is", null)
       .gte("scheduled_at", weekMonday.toISOString())
       .lte("scheduled_at", weekSunday.toISOString())
       .order("scheduled_at", { ascending: true }),
+    // Only show in the "awaiting slot" list if approved AND no slot yet.
     client
       .from("posts")
       .select("*")
@@ -50,10 +54,13 @@ export default async function SchedulePage({
         </div>
         <div className="flex items-center gap-4 text-xs text-gray-600">
           <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" /> approved
+          </span>
+          <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-blue-400" /> scheduled
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" /> published
+            <span className="w-2 h-2 rounded-full bg-purple-400" /> published
           </span>
         </div>
       </div>
