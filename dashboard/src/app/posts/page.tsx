@@ -18,14 +18,33 @@ async function fetchStats(client: ReturnType<typeof getServerClient>) {
 }
 
 export default async function PostsPage() {
-  const client = getServerClient()
+  let posts: Post[] = []
+  let stats = { pending: 0, approved: 0, published: 0 }
+  let configError: string | null = null
 
-  const [{ data }, stats] = await Promise.all([
-    client.from("posts").select("*").eq("status", PostStatus.PENDING).order("created_at", { ascending: false }),
-    fetchStats(client),
-  ])
+  try {
+    const client = getServerClient()
+    const [{ data }, fetchedStats] = await Promise.all([
+      client.from("posts").select("*").eq("status", PostStatus.PENDING).order("created_at", { ascending: false }),
+      fetchStats(client),
+    ])
+    posts = (data ?? []) as Post[]
+    stats = fetchedStats
+  } catch (err) {
+    configError = err instanceof Error ? err.message : "Failed to connect to database"
+  }
 
-  const posts = (data ?? []) as Post[]
+  if (configError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <p className="text-red-400 font-semibold mb-2">Configuration error</p>
+        <p className="text-sm text-gray-500 max-w-md">{configError}</p>
+        <p className="text-xs text-gray-600 mt-4">
+          Set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY in Vercel → Settings → Environment Variables, then redeploy.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div>
