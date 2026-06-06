@@ -63,6 +63,14 @@ class UnsplashSettings(BaseSettings):
     access_key: str = Field(default="")
 
 
+class TmdbSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE, env_file_encoding=ENV_ENC,
+        env_prefix="TMDB_", extra="ignore",
+    )
+    api_key: str = Field(default="")
+
+
 class SupabaseSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ENV_FILE, env_file_encoding=ENV_ENC,
@@ -94,6 +102,7 @@ class Settings(BaseSettings):
     google: GoogleSettings = Field(default_factory=GoogleSettings)
     pexels: PexelsSettings = Field(default_factory=PexelsSettings)
     unsplash: UnsplashSettings = Field(default_factory=UnsplashSettings)
+    tmdb: TmdbSettings = Field(default_factory=TmdbSettings)
     supabase: SupabaseSettings = Field(default_factory=SupabaseSettings)
     app: AppSettings = Field(default_factory=AppSettings)
 

@@ -20,18 +20,35 @@ STOPWORDS = {
 
 
 class ImageAgent:
-    def __init__(self, providers: List[AbstractImageProvider]) -> None:
-        self._providers = providers
+    def __init__(
+        self,
+        providers: List[AbstractImageProvider],
+        anime_provider: AbstractImageProvider | None = None,
+        movie_provider: AbstractImageProvider | None = None,
+    ) -> None:
+        self._providers = providers          # fallback providers (Pexels, Unsplash)
+        self._anime_provider = anime_provider
+        self._movie_provider = movie_provider
 
     async def find_image(self, post: Post) -> str | None:
+        # For creative posts try the specialist provider first using the
+        # explicit image_subject Claude returned (e.g. "Demon Slayer").
+        if post.creative_angle == "anime" and self._anime_provider and post.image_subject:
+            url = await self._try_provider(self._anime_provider, [post.image_subject])
+            if url:
+                return url
+
+        if post.creative_angle == "movie" and self._movie_provider and post.image_subject:
+            url = await self._try_provider(self._movie_provider, [post.image_subject])
+            if url:
+                return url
+
+        # Fall back to concept-based search on Pexels / Unsplash.
         keywords = self._extract_keywords(post)
         for provider in self._providers:
-            try:
-                url = await provider.find_image(keywords)
-                if url:
-                    return url
-            except Exception as exc:
-                logger.error("ImageAgent: provider '%s' failed: %s", provider.provider_name, exc)
+            url = await self._try_provider(provider, keywords)
+            if url:
+                return url
         return None
 
     async def enrich_posts(self, posts: List[Post]) -> List[Post]:
@@ -49,12 +66,22 @@ class ImageAgent:
         logger.info("ImageAgent: enriched %d/%d posts with images", found, len(posts))
         return list(enriched)
 
+    async def _try_provider(
+        self, provider: AbstractImageProvider, keywords: List[str]
+    ) -> str | None:
+        try:
+            return await provider.find_image(keywords)
+        except Exception as exc:
+            logger.error(
+                "ImageAgent: provider '%s' failed: %s", provider.provider_name, exc
+            )
+            return None
+
     def _extract_keywords(self, post: Post) -> List[str]:
         title = post.title
 
-        # For creative posts the title is "[Hook] — [Concept]".
-        # Pexels is a stock photo site — it has concept/subject photos but not
-        # anime stills or movie screenshots. Search the educational concept part.
+        # Creative posts: title is "[Hook] — [Concept]".
+        # Pexels/Unsplash are stock sites — search the educational concept.
         if post.post_type == "creative" and " — " in title:
             _, concept_part = title.split(" — ", 1)
             search_text = concept_part

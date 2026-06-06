@@ -25,6 +25,8 @@ from generators.educational_post import EducationalPostGenerator
 from generators.creative_post import CreativePostGenerator
 from image_providers.pexels import PexelsImageProvider
 from image_providers.unsplash import UnsplashImageProvider
+from image_providers.jikan import JikanAnimeImageProvider
+from image_providers.tmdb import TMDbImageProvider
 from scrapers.news_scraper import NewsScraper
 from scrapers.ib_official import IBOfficialScraper
 from core.models.post import PostStatus
@@ -87,7 +89,11 @@ async def mini_run() -> None:
 
     # ── Step 4: Get images ─────────────────────────────────────────────────
     print("Step 4: Sourcing images...")
-    image_agent = ImageAgent([PexelsImageProvider(), UnsplashImageProvider()])
+    image_agent = ImageAgent(
+        providers=[PexelsImageProvider(), UnsplashImageProvider()],
+        anime_provider=JikanAnimeImageProvider(),
+        movie_provider=TMDbImageProvider(),
+    )
     all_posts = await image_agent.enrich_posts(all_posts)
     for p in all_posts:
         print(f"  {'✓' if p.image_url else '✗'} image for: {p.title[:60]}")

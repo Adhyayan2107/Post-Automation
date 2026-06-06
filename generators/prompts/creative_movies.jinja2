@@ -23,6 +23,7 @@ Return a JSON array. Each element must have exactly these keys:
 - "target_subreddits": array of strings from {{ target_subreddits | tojson }}
 - "target_platforms": array of strings, always ["discord"] for movie posts
 - "creative_angle": "movie"
+- "image_subject": string (the specific film or TV show title only, e.g. "Breaking Bad", "Oppenheimer", "Chernobyl" — just the title, nothing else)
 
 Return ONLY the JSON array. No explanation, no markdown code fences.
 

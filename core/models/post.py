@@ -25,6 +25,7 @@ class Post(SQLModel, table=True):
     post_type: str
     creative_angle: Optional[str] = Field(default=None)
     image_url: Optional[str] = Field(default=None)
+    image_subject: Optional[str] = Field(default=None)
     source_urls: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(TEXT), nullable=False, server_default="{}"))
     target_platforms: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(TEXT), nullable=False, server_default="{}"))
     target_subreddits: List[str] = Field(default_factory=list, sa_column=Column(ARRAY(TEXT), nullable=False, server_default="{}"))

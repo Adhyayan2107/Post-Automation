@@ -98,6 +98,7 @@ class EducationalPostGenerator(AbstractContentGenerator):
                 source_urls=item.get("source_urls") or source_urls,
                 target_subreddits=item.get("target_subreddits") or TARGET_SUBREDDITS,
                 target_platforms=item.get("target_platforms") or ["reddit", "discord"],
+                image_subject=item.get("image_subject"),
                 status=PostStatus.PENDING,
                 run_id=run_id,
             ))
