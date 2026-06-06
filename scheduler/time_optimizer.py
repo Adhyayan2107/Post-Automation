@@ -47,12 +47,19 @@ def _candidate_slots(platform: str, reference: datetime) -> List[datetime]:
 
 
 class TimeOptimizer:
-    def get_slots_for_week(self, posts: List[Post]) -> List[ScheduleSlot]:
+    def get_slots_for_week(
+        self,
+        posts: List[Post],
+        already_used: dict[str, List[datetime]] | None = None,
+    ) -> List[ScheduleSlot]:
         if not posts:
             return []
 
         now = datetime.now(timezone.utc)
-        used: dict[str, List[datetime]] = {"reddit": [], "discord": []}
+        used: dict[str, List[datetime]] = {
+            "reddit":  list(already_used.get("reddit",  [])) if already_used else [],
+            "discord": list(already_used.get("discord", [])) if already_used else [],
+        }
         result: List[ScheduleSlot] = []
 
         for post in posts:

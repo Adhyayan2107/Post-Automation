@@ -134,7 +134,17 @@ async def mini_run() -> None:
         for post in saved:
             post.status = PostStatus.APPROVED
 
-        all_slots = optimizer.get_slots_for_week(saved)
+        # Load already-scheduled posts so the optimizer doesn't reuse taken slots.
+        existing = await post_repo.get_future_scheduled()
+        already_used: dict[str, list] = {"reddit": [], "discord": []}
+        for ep in existing:
+            if ep.scheduled_at is None:
+                continue
+            for platform in (ep.target_platforms or []):
+                if platform in already_used:
+                    already_used[platform].append(ep.scheduled_at)
+
+        all_slots = optimizer.get_slots_for_week(saved, already_used=already_used)
         post_map = {p.id: p for p in saved}
 
         for slot in all_slots:

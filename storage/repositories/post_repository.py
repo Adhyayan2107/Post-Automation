@@ -55,6 +55,19 @@ class PostRepository:
         }).eq("id", str(id)).execute()
         logger.info("Scheduled post %s at %s", id, scheduled_at)
 
+    async def get_future_scheduled(self) -> List[Post]:
+        from datetime import timezone
+        now = datetime.now(timezone.utc).isoformat()
+        response = (
+            self._client.table("posts")
+            .select("*")
+            .in_("status", [PostStatus.SCHEDULED.value, PostStatus.APPROVED.value])
+            .not_.is_("scheduled_at", "null")
+            .gte("scheduled_at", now)
+            .execute()
+        )
+        return [self._row_to_post(r) for r in (response.data or [])]
+
     def _row_to_post(self, row: dict) -> Post:
         from datetime import datetime
         from uuid import UUID as _UUID
