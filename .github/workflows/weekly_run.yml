@@ -1,0 +1,53 @@
+name: EduBot Weekly Run
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # Every Monday at 06:00 UTC
+  workflow_dispatch:        # Allow manual trigger from GitHub UI
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install dependencies
+        run: |
+          source $HOME/.local/bin/env
+          uv sync
+
+      - name: Run EduBot pipeline
+        run: |
+          source $HOME/.local/bin/env
+          uv run python -m agents.orchestrator
+        env:
+          ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          REDDIT_CLIENT_ID:         ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET:     ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USERNAME:          ${{ secrets.REDDIT_USERNAME }}
+          REDDIT_PASSWORD:          ${{ secrets.REDDIT_PASSWORD }}
+          REDDIT_USER_AGENT:        ${{ secrets.REDDIT_USER_AGENT }}
+          DISCORD_WEBHOOK_URL:      ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GOOGLE_CLIENT_ID:         ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET:     ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_CALENDAR_ID:       ${{ secrets.GOOGLE_CALENDAR_ID }}
+          GOOGLE_REDIRECT_URI:      ${{ secrets.GOOGLE_REDIRECT_URI }}
+          GMAIL_NOTIFY_ADDRESS:     ${{ secrets.GMAIL_NOTIFY_ADDRESS }}
+          PEXELS_API_KEY:           ${{ secrets.PEXELS_API_KEY }}
+          UNSPLASH_ACCESS_KEY:      ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          SUPABASE_URL:             ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY:        ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LOG_LEVEL:                INFO
+          DRY_RUN:                  "false"
+          WEEKLY_RUN_DAY:           monday

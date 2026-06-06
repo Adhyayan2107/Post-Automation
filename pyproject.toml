@@ -1,0 +1,44 @@
+[project]
+name = "edu-automation-bot"
+version = "0.1.0"
+description = "Automated weekly content pipeline for IB/IGCSE/A-Level education communities"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.27",
+    "beautifulsoup4>=4.12",
+    "feedparser>=6.0",
+    "anthropic>=0.30",
+    "praw>=7.7",
+    "discord-webhook>=1.3",
+    "google-api-python-client>=2.130",
+    "google-auth>=2.29",
+    "google-auth-oauthlib>=1.2",
+    "sqlmodel>=0.0.19",
+    "supabase>=2.4",
+    "apscheduler>=3.10",
+    "jinja2>=3.1",
+    "pydantic-settings>=2.3",
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "agents",
+    "core",
+    "scrapers",
+    "generators",
+    "image_providers",
+    "publishers",
+    "scheduler",
+    "storage",
+    "config",
+]
