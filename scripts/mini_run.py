@@ -1,6 +1,6 @@
 """
-Mini run: scrape news only, generate 1 edu + 1 creative post, save to Supabase,
-then auto-approve and (optionally) schedule to Google Calendar.
+Mini run: check for cached raw content first (7-day window), generate 1 edu + 1 creative
+post, save to Supabase, auto-approve, and (optionally) schedule to Google Calendar.
 
 Usage:
     uv run python scripts/mini_run.py
@@ -12,7 +12,6 @@ import asyncio
 import os
 import sys
 
-# ensure project root is on the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.logging import setup_logging
@@ -31,6 +30,7 @@ from scrapers.ib_official import IBOfficialScraper
 from core.models.post import PostStatus
 from storage.database import get_supabase_service_client
 from storage.repositories.post_repository import PostRepository
+from storage.repositories.raw_content_repository import RawContentRepository
 from storage.repositories.run_log_repository import RunLogRepository
 
 
@@ -40,27 +40,32 @@ async def mini_run() -> None:
     client = get_supabase_service_client()
     post_repo = PostRepository(client)
     run_log_repo = RunLogRepository(client)
+    raw_content_repo = RawContentRepository(client)
 
     run_id = await run_log_repo.start_run()
     print(f"Run ID: {run_id}\n")
 
-    # ── Step 1: Scrape (news + IB official — no auth needed) ──────────────
-    print("Step 1: Scraping news...")
-    scraper_agent = ScraperAgent([NewsScraper(), IBOfficialScraper()])
-    raw_contents = await scraper_agent.run(run_id)
-    print(f"  Got {len(raw_contents)} items\n")
+    # ── Step 1: Use cached raw content or scrape fresh ────────────────────
+    print("Step 1: Checking raw content cache (7-day window)...")
+    raw_contents = await raw_content_repo.get_recent(max_age_days=7)
 
-    if not raw_contents:
-        print("  No items scraped — check network / API keys")
-        await run_log_repo.fail_run(run_id)
-        return
+    if raw_contents:
+        print(f"  Using {len(raw_contents)} cached items (no scraping needed)\n")
+    else:
+        print("  Cache empty — scraping fresh...")
+        scraper_agent = ScraperAgent([NewsScraper(), IBOfficialScraper()])
+        raw_contents = await scraper_agent.run(run_id)
+        print(f"  Got {len(raw_contents)} items")
+        if not raw_contents:
+            print("  No items scraped — check network / API keys")
+            await run_log_repo.fail_run(run_id)
+            return
+        await raw_content_repo.save_batch(raw_contents)
+        print(f"  Saved {len(raw_contents)} items to cache\n")
 
     # ── Step 2: Generate 1 educational post ───────────────────────────────
     print("Step 2: Generating educational post (Claude)...")
     edu_gen = EducationalPostGenerator()
-    edu_gen.__class__.__dict__  # avoid module-level import issues
-    # Patch to return exactly 1 post
-    original_limit = edu_gen.__class__.__dict__.get("generate")
     edu_posts = await edu_gen.generate(raw_contents[:5])
     edu_posts = edu_posts[:1]
     for p in edu_posts:
@@ -120,8 +125,9 @@ async def mini_run() -> None:
             for slot in slots:
                 try:
                     event_id = calendar.create_event(slot, post)
+                    # Save scheduled_at to DB so the dashboard can display it
+                    await post_repo.update_schedule(post.id, slot.scheduled_at)
                     print(f"  📅 Calendar event: {event_id} on {slot.scheduled_at.strftime('%a %d %b %H:%M UTC')}")
-                    await post_repo.update_status(post.id, PostStatus.SCHEDULED)
                 except Exception as exc:
                     print(f"  ✗ Calendar failed: {exc}")
     else:

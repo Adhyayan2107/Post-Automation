@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 from supabase import Client
@@ -45,6 +46,13 @@ class PostRepository:
     async def update_status(self, id: UUID, status: PostStatus) -> None:
         self._client.table("posts").update({"status": status.value}).eq("id", str(id)).execute()
         logger.info("Updated post %s status to %s", id, status.value)
+
+    async def update_schedule(self, id: UUID, scheduled_at: datetime) -> None:
+        self._client.table("posts").update({
+            "status": PostStatus.SCHEDULED.value,
+            "scheduled_at": scheduled_at.isoformat(),
+        }).eq("id", str(id)).execute()
+        logger.info("Scheduled post %s at %s", id, scheduled_at)
 
     def _row_to_post(self, row: dict) -> Post:
         from datetime import datetime

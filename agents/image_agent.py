@@ -15,6 +15,7 @@ STOPWORDS = {
     "my", "our", "their", "i", "you", "we", "they", "he", "she", "about",
     "into", "not", "can", "do", "if", "up", "out", "so", "just", "than",
     "more", "also", "will", "would", "could", "have", "has", "had",
+    "ib", "igcse", "a-level", "alevel", "level",
 }
 
 
@@ -23,7 +24,7 @@ class ImageAgent:
         self._providers = providers
 
     async def find_image(self, post: Post) -> str | None:
-        keywords = self._extract_keywords(post.title)
+        keywords = self._extract_keywords(post)
         for provider in self._providers:
             try:
                 url = await provider.find_image(keywords)
@@ -48,11 +49,22 @@ class ImageAgent:
         logger.info("ImageAgent: enriched %d/%d posts with images", found, len(posts))
         return list(enriched)
 
-    def _extract_keywords(self, title: str) -> List[str]:
-        words = title.lower().split()
+    def _extract_keywords(self, post: Post) -> List[str]:
+        title = post.title
+
+        # For creative posts the title is "[Hook] — [Concept]".
+        # Pexels is a stock photo site — it has concept/subject photos but not
+        # anime stills or movie screenshots. Search the educational concept part.
+        if post.post_type == "creative" and " — " in title:
+            _, concept_part = title.split(" — ", 1)
+            search_text = concept_part
+        else:
+            search_text = title
+
+        words = search_text.lower().split()
         keywords = [
-            w.strip(".,!?;:\"'()[]")
+            w.strip(".,!?;:\"'()[]—")
             for w in words
-            if w.strip(".,!?;:\"'()[]") and w.strip(".,!?;:\"'()[]") not in STOPWORDS
+            if w.strip(".,!?;:\"'()[]—") and w.strip(".,!?;:\"'()[]—") not in STOPWORDS
         ]
         return keywords[:5]
