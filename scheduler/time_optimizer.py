@@ -6,24 +6,26 @@ from config.logging import get_logger
 
 logger = get_logger(__name__)
 
-# Best UTC posting times per platform per weekday (0=Mon … 6=Sun)
+# Best UTC posting times per platform per weekday (0=Mon … 6=Sun).
+# Two slots per day so back-to-back runs spread across the week
+# rather than stacking on the same hour.
 REDDIT_SLOTS: dict[int, list[int]] = {
-    0: [8],
-    1: [12],
-    2: [18],
-    3: [8],
-    4: [12],
-    5: [10],
+    0: [8, 14],
+    1: [12, 18],
+    2: [9, 18],
+    3: [8, 15],
+    4: [12, 17],
+    5: [10, 15],
     6: [16],
 }
 
 DISCORD_SLOTS: dict[int, list[int]] = {
-    0: [16],
-    1: [16],
-    2: [20],
-    3: [16],
-    4: [17],
-    5: [12],
+    0: [16, 20],
+    1: [16, 21],
+    2: [17, 20],
+    3: [16, 20],
+    4: [17, 21],
+    5: [12, 18],
     6: [18],
 }
 

@@ -65,25 +65,29 @@ async def mini_run() -> None:
         await raw_content_repo.save_batch(raw_contents)
         print(f"  Saved {len(raw_contents)} items to cache\n")
 
-    # ── Step 2: Generate 1 educational post ───────────────────────────────
-    print("Step 2: Generating educational post (Claude)...")
+    # ── Step 2: Generate 2 educational posts ──────────────────────────────
+    print("Step 2: Generating educational posts (Claude)...")
     edu_gen = EducationalPostGenerator()
     edu_posts = await edu_gen.generate(raw_contents[:5])
-    edu_posts = edu_posts[:1]
+    edu_posts = edu_posts[:2]
     for p in edu_posts:
         p.run_id = run_id
         p.status = PostStatus.PENDING
-    print(f"  Generated: {edu_posts[0].title[:70] if edu_posts else 'none'}\n")
+    for p in edu_posts:
+        print(f"  Generated: {p.title[:70]}")
+    print()
 
-    # ── Step 3: Generate 1 creative post ──────────────────────────────────
-    print("Step 3: Generating creative post (Claude)...")
+    # ── Step 3: Generate 2 creative posts ─────────────────────────────────
+    print("Step 3: Generating creative posts (Claude)...")
     creative_gen = CreativePostGenerator()
     creative_posts = await creative_gen.generate(raw_contents[:5])
-    creative_posts = creative_posts[:1]
+    creative_posts = creative_posts[:2]
     for p in creative_posts:
         p.run_id = run_id
         p.status = PostStatus.PENDING
-    print(f"  Generated: {creative_posts[0].title[:70] if creative_posts else 'none'}\n")
+    for p in creative_posts:
+        print(f"  Generated: {p.title[:70]}")
+    print()
 
     all_posts = edu_posts + creative_posts
 
@@ -125,17 +129,22 @@ async def mini_run() -> None:
         optimizer = TimeOptimizer()
         calendar = GoogleCalendarScheduler()
 
+        # Mark all posts approved before computing slots so the optimizer
+        # sees the full batch and spreads them across different days/times.
         for post in saved:
             post.status = PostStatus.APPROVED
-            slots = optimizer.get_slots_for_week([post])
-            for slot in slots:
-                try:
-                    event_id = calendar.create_event(slot, post)
-                    # Save scheduled_at to DB so the dashboard can display it
-                    await post_repo.update_schedule(post.id, slot.scheduled_at)
-                    print(f"  📅 Calendar event: {event_id} on {slot.scheduled_at.strftime('%a %d %b %H:%M UTC')}")
-                except Exception as exc:
-                    print(f"  ✗ Calendar failed: {exc}")
+
+        all_slots = optimizer.get_slots_for_week(saved)
+        post_map = {p.id: p for p in saved}
+
+        for slot in all_slots:
+            post = post_map[slot.post_id]
+            try:
+                event_id = calendar.create_event(slot, post)
+                await post_repo.update_schedule(post.id, slot.scheduled_at)
+                print(f"  📅 [{slot.platform:7}] {slot.scheduled_at.strftime('%a %d %b %H:%M UTC')}  {post.title[:45]}")
+            except Exception as exc:
+                print(f"  ✗ Calendar failed for {slot.post_id} on {slot.platform}: {exc}")
     else:
         print("Step 7: Skipping Google Calendar (no credentials.json / token.json found)")
         print("  → To enable: download credentials.json from Google Cloud Console")
