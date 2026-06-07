@@ -30,7 +30,8 @@ class DiscordSettings(BaseSettings):
         env_file=ENV_FILE, env_file_encoding=ENV_ENC,
         env_prefix="DISCORD_", extra="ignore",
     )
-    webhook_url: str = Field(default="")
+    webhook_educational: str = Field(default="")
+    webhook_creative: str = Field(default="")
 
 
 

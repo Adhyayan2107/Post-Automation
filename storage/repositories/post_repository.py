@@ -45,8 +45,25 @@ class PostRepository:
         return [self._row_to_post(row) for row in (response.data or [])]
 
     async def update_status(self, id: UUID, status: PostStatus) -> None:
-        self._client.table("posts").update({"status": status.value}).eq("id", str(id)).execute()
+        from datetime import timezone
+        payload: dict = {"status": status.value}
+        if status == PostStatus.PUBLISHED:
+            payload["published_at"] = datetime.now(timezone.utc).isoformat()
+        self._client.table("posts").update(payload).eq("id", str(id)).execute()
         logger.info("Updated post %s status to %s", id, status.value)
+
+    async def get_due_for_publishing(self) -> List[Post]:
+        from datetime import timezone
+        now = datetime.now(timezone.utc).isoformat()
+        response = (
+            self._client.table("posts")
+            .select("*")
+            .eq("status", PostStatus.APPROVED.value)
+            .not_.is_("scheduled_at", "null")
+            .lte("scheduled_at", now)
+            .execute()
+        )
+        return [self._row_to_post(r) for r in (response.data or [])]
 
     async def update_schedule(self, id: UUID, scheduled_at: datetime) -> None:
         self._client.table("posts").update({
