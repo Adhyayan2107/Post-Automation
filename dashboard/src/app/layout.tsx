@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {/* Nav */}
           <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
             <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest px-2 mb-2">Content</p>
-            <NavLink href="/posts">Post Queue</NavLink>
+            <NavLink href="/posts">Posts</NavLink>
             <NavLink href="/schedule">Schedule</NavLink>
             <div className="my-2 border-t border-white/5" />
             <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest px-2 mb-2">Pipeline</p>

@@ -6,7 +6,7 @@ import Image from "next/image"
 import { Post, PostStatus } from "@/lib/types"
 import { reschedulePost } from "@/actions/posts"
 import { format, parseISO, addDays, isSameDay, isToday } from "date-fns"
-import { CheckCircle2, Clock3, X, ExternalLink, Calendar, Loader2 } from "lucide-react"
+import { CheckCircle2, Clock3, X, ExternalLink, Calendar, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -29,23 +29,18 @@ const STATUS_STYLE: Record<PostStatus, { bg: string; ring: string; dot: string; 
 function PostModal({ post, onClose }: { post: Post; onClose: () => void }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-
-  const timeStr    = post.scheduled_at ?? post.published_at
-  const preview    = post.body.replace(/[#*`>\-]/g, "").replace(/\n+/g, " ").trim()
+  const timeStr     = post.scheduled_at ?? post.published_at
+  const preview     = post.body.replace(/[#*`>\-]/g, "").replace(/\n+/g, " ").trim()
   const statusStyle = STATUS_STYLE[post.status]
 
-  // datetime-local input value (yyyy-MM-ddTHH:mm in UTC)
-  const initialDateValue = timeStr
-    ? format(parseISO(timeStr), "yyyy-MM-dd'T'HH:mm")
-    : ""
+  const initialDateValue = timeStr ? format(parseISO(timeStr), "yyyy-MM-dd'T'HH:mm") : ""
   const [dateValue, setDateValue] = useState(initialDateValue)
   const dateChanged = dateValue !== initialDateValue
 
   function handleReschedule() {
     if (!dateValue) return
-    const newIso = dateValue + ":00Z"
     startTransition(async () => {
-      await reschedulePost(post.id, newIso)
+      await reschedulePost(post.id, dateValue + ":00Z")
       router.refresh()
       onClose()
     })
@@ -54,21 +49,17 @@ function PostModal({ post, onClose }: { post: Post; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-
       <div
         className="relative z-10 w-full max-w-lg bg-[#111118] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        {/* Image */}
         {post.image_url && (
           <div className="relative h-44 w-full bg-gray-900">
             <Image src={post.image_url} alt={post.title} fill className="object-cover opacity-80" unoptimized />
             <div className="absolute inset-0 bg-gradient-to-t from-[#111118] via-transparent to-transparent" />
           </div>
         )}
-
         <div className="p-5">
-          {/* Header */}
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -84,40 +75,31 @@ function PostModal({ post, onClose }: { post: Post; onClose: () => void }) {
               </div>
               <h2 className="text-base font-bold text-white leading-snug">{post.title}</h2>
             </div>
-            <button
-              onClick={onClose}
-              className="shrink-0 p-1.5 rounded-lg hover:bg-white/8 text-gray-500 hover:text-gray-200 transition-colors"
-            >
+            <button onClick={onClose} className="shrink-0 p-1.5 rounded-lg hover:bg-white/8 text-gray-500 hover:text-gray-200 transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Platforms */}
           <div className="flex items-center gap-2 mb-4 flex-wrap">
             {post.target_platforms.map(p => (
               <span key={p} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                 p === "reddit" ? "bg-orange-500/15 text-orange-400" : "bg-indigo-500/15 text-indigo-400"
-              }`}>
-                {p}
-              </span>
+              }`}>{p}</span>
             ))}
           </div>
 
-          {/* Body preview */}
           <div className="bg-white/3 border border-white/6 rounded-xl p-4 mb-4 max-h-32 overflow-y-auto">
             <p className="text-xs text-gray-400 leading-relaxed whitespace-pre-wrap">
               {preview.slice(0, 600)}{preview.length > 600 ? "…" : ""}
             </p>
           </div>
 
-          {/* ── Reschedule ── */}
+          {/* Reschedule */}
           {post.status !== PostStatus.PUBLISHED && post.scheduled_at && (
             <div className="bg-white/3 border border-white/8 rounded-xl p-3 mb-4">
               <div className="flex items-center gap-1.5 mb-2">
                 <Calendar className="w-3 h-3 text-gray-500" />
-                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
-                  Scheduled (UTC)
-                </span>
+                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Scheduled (UTC)</span>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -143,13 +125,11 @@ function PostModal({ post, onClose }: { post: Post; onClose: () => void }) {
             </div>
           )}
 
-          {/* View full post link */}
           <a
             href={`/posts/${post.id}`}
             className="flex items-center justify-center gap-2 w-full bg-white/5 hover:bg-white/10 border border-white/8 hover:border-white/15 text-gray-300 hover:text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
           >
-            View full post
-            <ExternalLink className="w-3.5 h-3.5" />
+            View full post <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
       </div>
@@ -159,22 +139,23 @@ function PostModal({ post, onClose }: { post: Post; onClose: () => void }) {
 
 // ── Calendar ──────────────────────────────────────────────────────────────
 
-export function WeekCalendar({ posts: initialPosts, weekMonday }: { posts: Post[]; weekMonday: Date }) {
+export function WeekCalendar({
+  posts,
+  weekMonday,
+  weekOffset,
+}: {
+  posts: Post[]
+  weekMonday: Date
+  weekOffset: number
+}) {
   const router = useRouter()
-  const [selected, setSelected]       = useState<Post | null>(null)
-  const [draggedPost, setDraggedPost] = useState<Post | null>(null)
-  const [dragOverDay, setDragOverDay] = useState<string | null>(null)
-  const [dropping, startDrop]         = useTransition()
+  const [selected, setSelected]         = useState<Post | null>(null)
+  const [draggedPost, setDraggedPost]   = useState<Post | null>(null)
+  const [dragOverDay, setDragOverDay]   = useState<string | null>(null)
+  const [dragOverZone, setDragOverZone] = useState<"prev" | "next" | null>(null)
+  const [, startDrop]                   = useTransition()
 
-  // Keep a local copy so we can do optimistic date updates
-  const [posts, setPosts] = useState(initialPosts)
-  // Sync when server re-renders with fresh props
-  useState(() => { setPosts(initialPosts) })
-
-  const days = DAY_NAMES.map((name, i) => ({
-    name,
-    date: addDays(weekMonday, i),
-  }))
+  const days = DAY_NAMES.map((name, i) => ({ name, date: addDays(weekMonday, i) }))
 
   function postsForDay(day: Date) {
     return posts
@@ -189,35 +170,8 @@ export function WeekCalendar({ posts: initialPosts, weekMonday }: { posts: Post[
       })
   }
 
-  function handleDragStart(post: Post) {
-    setDraggedPost(post)
-  }
-
-  function handleDragEnd() {
-    setDraggedPost(null)
-    setDragOverDay(null)
-  }
-
-  function handleDragOver(e: React.DragEvent, dayName: string) {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = "move"
-    setDragOverDay(dayName)
-  }
-
-  function handleDragLeave(e: React.DragEvent) {
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setDragOverDay(null)
-    }
-  }
-
-  function handleDrop(e: React.DragEvent, targetDate: Date) {
-    e.preventDefault()
-    setDragOverDay(null)
-
-    if (!draggedPost?.scheduled_at) return
-    if (isSameDay(parseISO(draggedPost.scheduled_at), targetDate)) return
-
-    const current = parseISO(draggedPost.scheduled_at)
+  function scheduleToDate(post: Post, targetDate: Date): string {
+    const current = parseISO(post.scheduled_at!)
     const newDate = new Date(Date.UTC(
       targetDate.getFullYear(),
       targetDate.getMonth(),
@@ -226,46 +180,62 @@ export function WeekCalendar({ posts: initialPosts, weekMonday }: { posts: Post[
       current.getUTCMinutes(),
       0, 0,
     ))
-    const newIso = newDate.toISOString()
-
-    // Optimistic update
-    setPosts(prev => prev.map(p =>
-      p.id === draggedPost.id ? { ...p, scheduled_at: newIso } : p
-    ))
-
-    startDrop(async () => {
-      try {
-        await reschedulePost(draggedPost.id, newIso)
-        router.refresh()
-      } catch {
-        // Roll back on failure
-        setPosts(initialPosts)
-      }
-    })
-
-    setDraggedPost(null)
+    return newDate.toISOString()
   }
+
+  function handleDrop(e: React.DragEvent, targetDate: Date) {
+    e.preventDefault()
+    setDragOverDay(null)
+    if (!draggedPost?.scheduled_at) return
+    if (isSameDay(parseISO(draggedPost.scheduled_at), targetDate)) { setDraggedPost(null); return }
+    const newIso = scheduleToDate(draggedPost, targetDate)
+    const post = draggedPost
+    setDraggedPost(null)
+    startDrop(async () => {
+      await reschedulePost(post.id, newIso)
+      router.refresh()
+    })
+  }
+
+  function handleWeekZoneDrop(e: React.DragEvent, direction: "prev" | "next") {
+    e.preventDefault()
+    setDragOverZone(null)
+    if (!draggedPost?.scheduled_at) return
+    const deltaMs = (direction === "next" ? 7 : -7) * 24 * 60 * 60 * 1000
+    const current = parseISO(draggedPost.scheduled_at)
+    const newIso  = new Date(current.getTime() + deltaMs).toISOString()
+    const post    = draggedPost
+    const newOffset = weekOffset + (direction === "next" ? 1 : -1)
+    setDraggedPost(null)
+    startDrop(async () => {
+      await reschedulePost(post.id, newIso)
+      router.push(`/schedule?week=${newOffset}`)
+    })
+  }
+
+  const isDragging = !!draggedPost
 
   return (
     <>
+      {/* Main calendar grid */}
       <div className="grid grid-cols-7 gap-px bg-white/5 rounded-xl overflow-hidden border border-white/8">
         {days.map(({ name, date }) => {
-          const today    = isToday(date)
-          const dayPosts = postsForDay(date)
-          const isDragOver = dragOverDay === name && draggedPost && !isSameDay(parseISO(draggedPost.scheduled_at ?? ""), date)
+          const today      = isToday(date)
+          const dayPosts   = postsForDay(date)
+          const isDragOver = dragOverDay === name && draggedPost &&
+            !!draggedPost.scheduled_at &&
+            !isSameDay(parseISO(draggedPost.scheduled_at), date)
 
           return (
             <div
               key={name}
               className={`flex flex-col min-h-[220px] transition-colors ${
-                isDragOver
-                  ? "bg-emerald-950/40 ring-inset ring-1 ring-emerald-500/40"
-                  : today
-                  ? "bg-emerald-950/20"
-                  : "bg-[#0d0d14]"
+                isDragOver ? "bg-emerald-950/40 ring-inset ring-1 ring-emerald-500/30"
+                : today    ? "bg-emerald-950/20"
+                :             "bg-[#0d0d14]"
               }`}
-              onDragOver={e => handleDragOver(e, name)}
-              onDragLeave={handleDragLeave}
+              onDragOver={e => { e.preventDefault(); setDragOverDay(name) }}
+              onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverDay(null) }}
               onDrop={e => handleDrop(e, date)}
             >
               {/* Day header */}
@@ -277,14 +247,12 @@ export function WeekCalendar({ posts: initialPosts, weekMonday }: { posts: Post[
                 <p className="text-[10px] text-gray-700">{format(date, "MMM")}</p>
               </div>
 
-              {/* Drop hint */}
               {isDragOver && (
                 <div className="mx-1.5 mt-1.5 rounded-md border border-dashed border-emerald-500/40 bg-emerald-500/5 flex items-center justify-center py-2">
                   <span className="text-[10px] text-emerald-500/70">Drop here</span>
                 </div>
               )}
 
-              {/* Events */}
               <div className="flex flex-col gap-1.5 p-1.5 flex-1">
                 {dayPosts.length === 0 && !isDragOver ? (
                   <div className="flex-1 flex items-center justify-center">
@@ -292,37 +260,33 @@ export function WeekCalendar({ posts: initialPosts, weekMonday }: { posts: Post[
                   </div>
                 ) : (
                   dayPosts.map(post => {
-                    const platform    = post.target_platforms[0] ?? "reddit"
-                    const bar         = PLATFORM_BAR[platform] ?? "bg-gray-500"
-                    const statusStyle = STATUS_STYLE[post.status] ?? STATUS_STYLE[PostStatus.PENDING]
-                    const timeStr     = format(parseISO(post.scheduled_at ?? post.published_at!), "HH:mm")
-                    const isPublished = post.status === PostStatus.PUBLISHED
+                    const platform      = post.target_platforms[0] ?? "reddit"
+                    const bar           = PLATFORM_BAR[platform] ?? "bg-gray-500"
+                    const statusStyle   = STATUS_STYLE[post.status] ?? STATUS_STYLE[PostStatus.PENDING]
+                    const timeStr       = format(parseISO(post.scheduled_at ?? post.published_at!), "HH:mm")
+                    const isPublished   = post.status === PostStatus.PUBLISHED
                     const isBeingDragged = draggedPost?.id === post.id
 
                     return (
                       <button
                         key={post.id}
-                        draggable={post.status !== PostStatus.PUBLISHED}
-                        onDragStart={() => handleDragStart(post)}
-                        onDragEnd={handleDragEnd}
+                        draggable={!isPublished}
+                        onDragStart={() => setDraggedPost(post)}
+                        onDragEnd={() => { setDraggedPost(null); setDragOverDay(null); setDragOverZone(null) }}
                         onClick={() => setSelected(post)}
-                        className={`relative w-full text-left flex flex-col gap-0.5 rounded-md px-2 py-1.5 overflow-hidden border hover:brightness-125 transition-all group cursor-grab active:cursor-grabbing ${statusStyle.bg} ${statusStyle.ring} ${
-                          isBeingDragged ? "opacity-40 scale-95" : ""
-                        }`}
+                        className={`relative w-full text-left flex flex-col gap-0.5 rounded-md px-2 py-1.5 overflow-hidden border hover:brightness-125 transition-all group cursor-grab active:cursor-grabbing ${statusStyle.bg} ${statusStyle.ring} ${isBeingDragged ? "opacity-40 scale-95" : ""}`}
                       >
                         <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${bar}`} />
-
                         <div className="flex items-center gap-1 pl-1">
                           {isPublished
                             ? <CheckCircle2 className="w-2.5 h-2.5 text-purple-400 shrink-0" />
-                            : <Clock3 className="w-2.5 h-2.5 text-gray-500 shrink-0" />
+                            : <Clock3       className="w-2.5 h-2.5 text-gray-500 shrink-0" />
                           }
                           <span className="text-[10px] font-bold text-gray-300">{timeStr}</span>
                           <span className="ml-auto">
                             <span className={`inline-block w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
                           </span>
                         </div>
-
                         <p className="text-[11px] text-gray-300 leading-tight line-clamp-2 pl-1 group-hover:text-white transition-colors">
                           {post.title}
                         </p>
@@ -335,6 +299,41 @@ export function WeekCalendar({ posts: initialPosts, weekMonday }: { posts: Post[
           )
         })}
       </div>
+
+      {/* Cross-week drag zones — shown while dragging */}
+      {isDragging && (
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          {/* Prev week */}
+          <div
+            className={`flex items-center justify-center gap-2 rounded-xl border border-dashed py-4 transition-colors cursor-copy ${
+              dragOverZone === "prev"
+                ? "border-white/30 bg-white/8 text-gray-200"
+                : "border-white/12 bg-white/2 text-gray-600"
+            }`}
+            onDragOver={e => { e.preventDefault(); setDragOverZone("prev") }}
+            onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverZone(null) }}
+            onDrop={e => handleWeekZoneDrop(e, "prev")}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span className="text-sm font-medium">Prev week — same day &amp; time</span>
+          </div>
+
+          {/* Next week */}
+          <div
+            className={`flex items-center justify-center gap-2 rounded-xl border border-dashed py-4 transition-colors cursor-copy ${
+              dragOverZone === "next"
+                ? "border-white/30 bg-white/8 text-gray-200"
+                : "border-white/12 bg-white/2 text-gray-600"
+            }`}
+            onDragOver={e => { e.preventDefault(); setDragOverZone("next") }}
+            onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverZone(null) }}
+            onDrop={e => handleWeekZoneDrop(e, "next")}
+          >
+            <span className="text-sm font-medium">Next week — same day &amp; time</span>
+            <ChevronRight className="w-4 h-4" />
+          </div>
+        </div>
+      )}
 
       {selected && <PostModal post={selected} onClose={() => setSelected(null)} />}
     </>

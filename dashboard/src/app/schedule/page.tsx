@@ -79,7 +79,7 @@ export default async function SchedulePage({
       </div>
 
       {/* Calendar */}
-      <WeekCalendar posts={calendarPosts} weekMonday={weekMonday} />
+      <WeekCalendar posts={calendarPosts} weekMonday={weekMonday} weekOffset={weekOffset} />
 
     </div>
   )

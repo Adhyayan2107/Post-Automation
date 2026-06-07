@@ -2,6 +2,7 @@ import { getServerClient } from "@/lib/supabase"
 import { Post, PostStatus } from "@/lib/types"
 import { PostCard } from "@/components/PostCard"
 import Link from "next/link"
+import { SlidersHorizontal } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -28,13 +29,34 @@ const TAB_BADGE: Record<string, string> = {
   red:     "bg-red-400/15 text-red-400",
 }
 
+const FILTERS = [
+  { key: "all",         label: "All" },
+  { key: "educational", label: "Educational" },
+  { key: "creative",    label: "Creative" },
+  { key: "anime",       label: "Anime" },
+  { key: "movie",       label: "Movie" },
+  { key: "history",     label: "History" },
+] as const
+
+type FilterKey = typeof FILTERS[number]["key"]
+
+function applyFilter(query: ReturnType<ReturnType<typeof import("@supabase/supabase-js").createClient>["from"]>["select"], filter: FilterKey) {
+  if (filter === "educational") return (query as any).eq("post_type", "educational")
+  if (filter === "creative")    return (query as any).eq("post_type", "creative")
+  if (filter === "anime")       return (query as any).eq("post_type", "creative").eq("creative_angle", "anime")
+  if (filter === "movie")       return (query as any).eq("post_type", "creative").eq("creative_angle", "movie")
+  if (filter === "history")     return (query as any).eq("post_type", "creative").eq("creative_angle", "history")
+  return query
+}
+
 export default async function PostsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; filter?: string }>
 }) {
-  const { tab: rawTab } = await searchParams
-  const activeTab: TabKey = (TAB_CONFIG.find(t => t.key === rawTab)?.key ?? "pending") as TabKey
+  const { tab: rawTab, filter: rawFilter } = await searchParams
+  const activeTab: TabKey   = (TAB_CONFIG.find(t => t.key === rawTab)?.key ?? "pending") as TabKey
+  const activeFilter: FilterKey = (FILTERS.find(f => f.key === rawFilter)?.key ?? "all") as FilterKey
 
   let configError: string | null = null
   let posts: Post[] = []
@@ -43,12 +65,11 @@ export default async function PostsPage({
   try {
     const client = getServerClient()
 
+    const baseQuery = client.from("posts").select("*").eq("status", activeTab).order("created_at", { ascending: false })
+    const filteredQuery = applyFilter(baseQuery as any, activeFilter)
+
     const [{ data }, ...countResults] = await Promise.all([
-      client
-        .from("posts")
-        .select("*")
-        .eq("status", activeTab)
-        .order("created_at", { ascending: false }),
+      filteredQuery,
       ...TAB_CONFIG.map(t =>
         client.from("posts").select("id", { count: "exact", head: true }).eq("status", t.key)
       ),
@@ -85,14 +106,14 @@ export default async function PostsPage({
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-0 border-b border-white/8 mb-6 -mx-1">
+      <div className="flex gap-0 border-b border-white/8 mb-5 -mx-1">
         {TAB_CONFIG.map(({ key, label, color }) => {
           const isActive = key === activeTab
           const count = counts[key] ?? 0
           return (
             <Link
               key={key}
-              href={`/posts?tab=${key}`}
+              href={`/posts?tab=${key}&filter=${activeFilter}`}
               className={`relative px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px mx-1 ${
                 isActive
                   ? `${TAB_ACTIVE[color]} bg-transparent`
@@ -112,14 +133,43 @@ export default async function PostsPage({
         })}
       </div>
 
+      {/* Filter pills */}
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
+        <div className="flex items-center gap-1.5 text-xs text-gray-600 mr-1">
+          <SlidersHorizontal className="w-3 h-3" />
+          <span>Filter</span>
+        </div>
+        {FILTERS.map(({ key, label }) => {
+          const isActive = key === activeFilter
+          return (
+            <Link
+              key={key}
+              href={`/posts?tab=${activeTab}&filter=${key}`}
+              className={`text-xs px-3 py-1.5 rounded-full font-medium border transition-colors ${
+                isActive
+                  ? "bg-white/10 text-white border-white/20"
+                  : "text-gray-500 hover:text-gray-300 border-white/8 hover:border-white/15"
+              }`}
+            >
+              {label}
+            </Link>
+          )
+        })}
+        {activeFilter !== "all" && (
+          <span className="text-xs text-gray-600 ml-1">
+            — {posts.length} result{posts.length !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
       {/* Grid */}
       {posts.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-56 text-gray-600 border border-white/5 rounded-xl">
-          <p className="text-base">No {activeTab} posts</p>
+          <p className="text-base">No {activeFilter !== "all" ? activeFilter + " " : ""}{activeTab} posts</p>
           <p className="text-sm mt-1 text-gray-700">
             {activeTab === "pending"
               ? "Run the pipeline to generate new content"
-              : `No posts with status "${activeTab}" yet`}
+              : `No posts match this filter`}
           </p>
         </div>
       ) : (
