@@ -19,9 +19,24 @@ export async function POST() {
         }
       }
 
+      // Extend PATH with common uv install locations so the spawned process
+      // can find uv regardless of how the Next.js server was started.
+      const home = process.env.HOME ?? ""
+      const extraPaths = [
+        `${home}/.local/bin`,
+        `${home}/.cargo/bin`,
+        "/opt/homebrew/bin",
+        "/opt/homebrew/sbin",
+        "/usr/local/bin",
+      ].join(":")
+      const extendedEnv = {
+        ...process.env,
+        PATH: `${extraPaths}:${process.env.PATH ?? ""}`,
+      }
+
       const proc = spawn("uv", ["run", "python", "scripts/mini_run.py"], {
         cwd: projectRoot,
-        env: { ...process.env },
+        env: extendedEnv,
       })
 
       proc.stdout.on("data", (chunk: Buffer) => {

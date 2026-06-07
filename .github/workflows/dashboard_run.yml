@@ -16,17 +16,15 @@ jobs:
           python-version: "3.12"
 
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install packages
-        run: |
-          source $HOME/.local/bin/env
-          uv sync
+        run: uv sync
 
       - name: Run mini_run.py
-        run: |
-          source $HOME/.local/bin/env
-          uv run python scripts/mini_run.py
+        run: uv run python scripts/mini_run.py
         env:
           ANTHROPIC_API_KEY:         ${{ secrets.ANTHROPIC_API_KEY }}
           PEXELS_API_KEY:            ${{ secrets.PEXELS_API_KEY }}
