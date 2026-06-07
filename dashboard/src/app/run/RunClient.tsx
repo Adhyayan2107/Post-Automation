@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import {
   Play, Terminal, CheckCircle2, XCircle, Loader2,
   Database, DollarSign, Layers, Clock, AlertTriangle,
-  Github, ExternalLink, Circle,
+  GitBranch, ExternalLink, Circle,
 } from "lucide-react"
 import { formatDistanceToNow, parseISO } from "date-fns"
 
@@ -225,7 +225,7 @@ export function RunClient({ initialCache }: { initialCache: CacheStatus }) {
             >
               {ghState === "dispatching" || ghState === "running"
                 ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <Github  className="w-4 h-4" />
+                : <GitBranch  className="w-4 h-4" />
               }
               {ghState === "dispatching" ? "Dispatching…"
                : ghState === "running"   ? "Running…"
@@ -372,7 +372,7 @@ export function RunClient({ initialCache }: { initialCache: CacheStatus }) {
       {ghState !== "idle" && (
         <div className="rounded-2xl border border-white/8 bg-[#06060c] overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-white/8 bg-white/2">
-            <Github className="w-3.5 h-3.5 text-gray-500" />
+            <GitBranch className="w-3.5 h-3.5 text-gray-500" />
             <span className="text-xs font-medium text-gray-400">GitHub Actions</span>
 
             {ghState === "dispatching" && (
