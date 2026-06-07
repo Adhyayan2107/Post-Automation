@@ -33,10 +33,9 @@ export async function rejectPost(id: string): Promise<void> {
 export async function reschedulePost(id: string, scheduledAt: string): Promise<void> {
   const client = getServiceClient()
 
-  // Fetch current gcal_event_id
   const { data: row } = await client
     .from("posts")
-    .select("gcal_event_id")
+    .select("gcal_event_id, title")
     .eq("id", id)
     .single()
 
@@ -47,32 +46,34 @@ export async function reschedulePost(id: string, scheduledAt: string): Promise<v
 
   if (error) throw new Error(`Failed to reschedule post: ${error.message}`)
 
-  // Try to update Google Calendar event (silently skip if not configured)
   const gcalEventId = row?.gcal_event_id as string | null
-  if (gcalEventId) {
-    try {
+  const title = row?.title as string | undefined
+
+  try {
+    if (gcalEventId) {
       await updateGoogleCalendarEvent(gcalEventId, scheduledAt)
-    } catch {
-      // Google Calendar update is best-effort; DB is already updated
+    } else {
+      // No event yet — create one and persist the event ID
+      const newEventId = await createGoogleCalendarEvent(title ?? "EduBot Post", scheduledAt)
+      if (newEventId) {
+        await client.from("posts").update({ gcal_event_id: newEventId }).eq("id", id)
+      }
     }
+  } catch {
+    // Google Calendar is best-effort; DB is already updated
   }
 
   revalidatePath("/schedule")
 }
 
-async function updateGoogleCalendarEvent(
-  eventId: string,
-  scheduledAt: string
-): Promise<void> {
+async function getAccessToken(): Promise<string | null> {
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN
   const clientId     = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-  const calendarId   = process.env.GOOGLE_CALENDAR_ID
 
-  if (!refreshToken || !clientId || !clientSecret || !calendarId) return
+  if (!refreshToken || !clientId || !clientSecret) return null
 
-  // Exchange refresh token for access token
-  const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
+  const resp = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -83,26 +84,66 @@ async function updateGoogleCalendarEvent(
     }),
   })
 
-  if (!tokenResp.ok) return
-  const { access_token } = await tokenResp.json() as { access_token: string }
+  if (!resp.ok) return null
+  const { access_token } = await resp.json() as { access_token: string }
+  return access_token
+}
+
+async function updateGoogleCalendarEvent(
+  eventId: string,
+  scheduledAt: string
+): Promise<void> {
+  const calendarId = process.env.GOOGLE_CALENDAR_ID
+  if (!calendarId) return
+
+  const token = await getAccessToken()
+  if (!token) return
 
   const start = new Date(scheduledAt)
-  const end   = new Date(start.getTime() + 60 * 60 * 1000) // +1 hour
+  const end   = new Date(start.getTime() + 60 * 60 * 1000)
 
   await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
     {
       method: "PATCH",
-      headers: {
-        Authorization:  `Bearer ${access_token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         start: { dateTime: start.toISOString(), timeZone: "UTC" },
         end:   { dateTime: end.toISOString(),   timeZone: "UTC" },
       }),
     }
   )
+}
+
+async function createGoogleCalendarEvent(
+  title: string,
+  scheduledAt: string
+): Promise<string | null> {
+  const calendarId = process.env.GOOGLE_CALENDAR_ID
+  if (!calendarId) return null
+
+  const token = await getAccessToken()
+  if (!token) return null
+
+  const start = new Date(scheduledAt)
+  const end   = new Date(start.getTime() + 60 * 60 * 1000)
+
+  const resp = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        summary: `[EduBot] ${title}`,
+        start: { dateTime: start.toISOString(), timeZone: "UTC" },
+        end:   { dateTime: end.toISOString(),   timeZone: "UTC" },
+      }),
+    }
+  )
+
+  if (!resp.ok) return null
+  const event = await resp.json() as { id: string }
+  return event.id ?? null
 }
 
 export async function editPost(
