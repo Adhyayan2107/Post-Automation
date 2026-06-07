@@ -108,6 +108,21 @@ class GoogleCalendarScheduler:
             ))
         return slots
 
+    def update_event(self, event_id: str, new_scheduled_at: "datetime") -> None:
+        from datetime import timedelta
+        service = self._get_service()
+        start = new_scheduled_at.isoformat()
+        end = (new_scheduled_at + timedelta(hours=1)).isoformat()
+        service.events().patch(
+            calendarId=settings.google.calendar_id,
+            eventId=event_id,
+            body={
+                "start": {"dateTime": start, "timeZone": "UTC"},
+                "end":   {"dateTime": end,   "timeZone": "UTC"},
+            },
+        ).execute()
+        logger.info("Updated calendar event %s to %s", event_id, new_scheduled_at)
+
     def delete_event(self, event_id: str) -> None:
         service = self._get_service()
         service.events().delete(

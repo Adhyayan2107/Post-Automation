@@ -19,6 +19,7 @@ export interface Post {
   target_subreddits: string[]
   status: PostStatus
   scheduled_at: string | null
+  gcal_event_id: string | null
   published_at: string | null
   created_at: string
   run_id: string

@@ -26,6 +26,7 @@ class PostRepository:
             "target_subreddits": post.target_subreddits,
             "status": post.status.value,
             "scheduled_at": post.scheduled_at.isoformat() if post.scheduled_at else None,
+            "gcal_event_id": post.gcal_event_id,
             "published_at": post.published_at.isoformat() if post.published_at else None,
             "created_at": post.created_at.isoformat(),
             "run_id": str(post.run_id),
@@ -54,6 +55,10 @@ class PostRepository:
             "scheduled_at": scheduled_at.isoformat(),
         }).eq("id", str(id)).execute()
         logger.info("Scheduled post %s at %s", id, scheduled_at)
+
+    async def set_gcal_event_id(self, id: UUID, event_id: str) -> None:
+        self._client.table("posts").update({"gcal_event_id": event_id}).eq("id", str(id)).execute()
+        logger.info("Stored gcal_event_id %s for post %s", event_id, id)
 
     async def set_slot(self, id: UUID, scheduled_at: datetime) -> None:
         self._client.table("posts").update({
@@ -89,6 +94,7 @@ class PostRepository:
             creative_angle=row.get("creative_angle"),
             image_url=row.get("image_url"),
             image_subject=row.get("image_subject"),
+            gcal_event_id=row.get("gcal_event_id"),
             source_urls=row.get("source_urls") or [],
             target_platforms=row.get("target_platforms") or [],
             target_subreddits=row.get("target_subreddits") or [],

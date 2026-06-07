@@ -145,7 +145,8 @@ async def mini_run() -> None:
         for slot in all_slots:
             post = post_map[slot.post_id]
             try:
-                calendar.create_event(slot, post)
+                event_id = calendar.create_event(slot, post)
+                await post_repo.set_gcal_event_id(post.id, event_id)
                 print(f"  ✓ [{slot.platform}] {post.title[:50]}")
             except Exception as exc:
                 print(f"  ✗ Calendar failed for {slot.post_id}: {exc}")
