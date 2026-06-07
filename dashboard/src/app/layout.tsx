@@ -27,15 +27,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest px-2 mb-2">Content</p>
             <NavLink href="/posts">Post Queue</NavLink>
             <NavLink href="/schedule">Schedule</NavLink>
+            <div className="my-2 border-t border-white/5" />
+            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest px-2 mb-2">Pipeline</p>
+            <NavLink href="/run">Run</NavLink>
           </nav>
-
-          {/* Footer hint */}
-          <div className="px-5 py-4 border-t border-white/5">
-            <p className="text-[10px] text-gray-600 leading-relaxed">
-              Run pipeline:<br />
-              <code className="text-gray-500">uv run python scripts/mini_run.py</code>
-            </p>
-          </div>
         </aside>
 
         <main className="flex-1 overflow-y-auto">{children}</main>
