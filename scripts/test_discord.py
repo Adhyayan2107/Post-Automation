@@ -1,7 +1,5 @@
 """
-One-shot test: sends one real approved post to Discord immediately.
-Does NOT check scheduled_at — purely for verifying webhook works.
-Does NOT change the post's status in DB.
+One-shot test: sends one approved post to Discord and marks it published in DB.
 
 Usage: uv run python scripts/test_discord.py
 """
@@ -25,13 +23,11 @@ async def test() -> None:
 
     posts = await repo.get_by_status(PostStatus.APPROVED)
     if not posts:
-        posts = await repo.get_by_status(PostStatus.PENDING)
-    if not posts:
-        print("No approved or pending posts in DB to test with.")
+        print("No approved posts in DB. Approve a post in the dashboard first.")
         return
 
     post = posts[0]
-    print(f"Sending test post to Discord:")
+    print(f"Sending to Discord:")
     print(f"  Title : {post.title}")
     print(f"  Type  : {post.post_type}" + (f" / {post.creative_angle}" if post.creative_angle else ""))
     channel = "fun-to-learn" if post.post_type == "creative" else "news-and-updates"
@@ -39,7 +35,11 @@ async def test() -> None:
 
     publisher = DiscordPublisher()
     ok = await publisher.publish(post)
-    print("✓ Sent successfully!" if ok else "✗ Failed — check webhook URL / secrets")
+    if ok:
+        await repo.update_status(post.id, PostStatus.PUBLISHED)
+        print("✓ Sent and marked as published in DB!")
+    else:
+        print("✗ Failed — check webhook URL / secrets")
 
 
 if __name__ == "__main__":
