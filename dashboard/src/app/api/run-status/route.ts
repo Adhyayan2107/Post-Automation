@@ -1,9 +1,9 @@
 import { getServerClient } from "@/lib/supabase"
-import { RunClient, type CacheStatus } from "./RunClient"
+import { NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
 
-async function getCacheStatus(): Promise<CacheStatus> {
+export async function GET() {
   try {
     const client = getServerClient()
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -16,13 +16,10 @@ async function getCacheStatus(): Promise<CacheStatus> {
       .limit(1)
 
     const hasCache = (count ?? 0) > 0
-    return { hasCache, count: count ?? 0, lastScrapedAt: data?.[0]?.scraped_at ?? null }
-  } catch {
-    return { hasCache: false, count: 0, lastScrapedAt: null }
-  }
-}
+    const lastScrapedAt = data?.[0]?.scraped_at ?? null
 
-export default async function RunPage() {
-  const cache = await getCacheStatus()
-  return <RunClient initialCache={cache} />
+    return NextResponse.json({ hasCache, count: count ?? 0, lastScrapedAt })
+  } catch {
+    return NextResponse.json({ hasCache: false, count: 0, lastScrapedAt: null })
+  }
 }
