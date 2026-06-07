@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic"
 const TAB_CONFIG = [
   { key: "pending",   label: "Pending",   color: "yellow"  },
   { key: "approved",  label: "Approved",  color: "emerald" },
-  { key: "scheduled", label: "Scheduled", color: "blue"    },
   { key: "published", label: "Published", color: "purple"  },
   { key: "rejected",  label: "Rejected",  color: "red"     },
 ] as const
@@ -18,7 +17,6 @@ type TabKey = typeof TAB_CONFIG[number]["key"]
 const TAB_ACTIVE: Record<string, string> = {
   yellow:  "border-yellow-400 text-yellow-400",
   emerald: "border-emerald-400 text-emerald-400",
-  blue:    "border-blue-400 text-blue-400",
   purple:  "border-purple-400 text-purple-400",
   red:     "border-red-400 text-red-400",
 }
@@ -26,7 +24,6 @@ const TAB_ACTIVE: Record<string, string> = {
 const TAB_BADGE: Record<string, string> = {
   yellow:  "bg-yellow-400/15 text-yellow-400",
   emerald: "bg-emerald-400/15 text-emerald-400",
-  blue:    "bg-blue-400/15 text-blue-400",
   purple:  "bg-purple-400/15 text-purple-400",
   red:     "bg-red-400/15 text-red-400",
 }

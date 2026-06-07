@@ -55,13 +55,19 @@ class PostRepository:
         }).eq("id", str(id)).execute()
         logger.info("Scheduled post %s at %s", id, scheduled_at)
 
+    async def set_slot(self, id: UUID, scheduled_at: datetime) -> None:
+        self._client.table("posts").update({
+            "scheduled_at": scheduled_at.isoformat(),
+        }).eq("id", str(id)).execute()
+        logger.info("Set slot for post %s at %s", id, scheduled_at)
+
     async def get_future_scheduled(self) -> List[Post]:
         from datetime import timezone
         now = datetime.now(timezone.utc).isoformat()
         response = (
             self._client.table("posts")
             .select("*")
-            .in_("status", [PostStatus.SCHEDULED.value, PostStatus.APPROVED.value])
+            .in_("status", [PostStatus.PENDING.value, PostStatus.APPROVED.value, PostStatus.SCHEDULED.value])
             .not_.is_("scheduled_at", "null")
             .gte("scheduled_at", now)
             .execute()

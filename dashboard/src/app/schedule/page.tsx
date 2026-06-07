@@ -22,27 +22,16 @@ export default async function SchedulePage({
   const weekLabel = `${format(weekMonday, "d MMM")} – ${format(weekSunday, "d MMM yyyy")}`
 
   const client = getServerClient()
-  const [{ data }, { data: unslottedData }] = await Promise.all([
-    // Include approved posts that already have a slot — they stay on the
-    // calendar even if the user re-approves them after scheduling.
-    client
-      .from("posts")
-      .select("*")
-      .in("status", [PostStatus.APPROVED, PostStatus.SCHEDULED, PostStatus.PUBLISHED])
-      .not("scheduled_at", "is", null)
-      .gte("scheduled_at", weekMonday.toISOString())
-      .lte("scheduled_at", weekSunday.toISOString())
-      .order("scheduled_at", { ascending: true }),
-    // Only show in the "awaiting slot" list if approved AND no slot yet.
-    client
-      .from("posts")
-      .select("*")
-      .eq("status", PostStatus.APPROVED)
-      .is("scheduled_at", null),
-  ])
+  const { data } = await client
+    .from("posts")
+    .select("*")
+    .in("status", [PostStatus.PENDING, PostStatus.APPROVED, PostStatus.SCHEDULED, PostStatus.PUBLISHED])
+    .not("scheduled_at", "is", null)
+    .gte("scheduled_at", weekMonday.toISOString())
+    .lte("scheduled_at", weekSunday.toISOString())
+    .order("scheduled_at", { ascending: true })
 
   const calendarPosts = (data ?? []) as Post[]
-  const awaitingSlot = (unslottedData ?? []) as Post[]
 
   return (
     <div className="p-8">
@@ -54,10 +43,10 @@ export default async function SchedulePage({
         </div>
         <div className="flex items-center gap-4 text-xs text-gray-600">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" /> approved
+            <span className="w-2 h-2 rounded-full bg-yellow-400" /> pending approval
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-blue-400" /> scheduled
+            <span className="w-2 h-2 rounded-full bg-emerald-400" /> approved
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-purple-400" /> published
@@ -92,36 +81,6 @@ export default async function SchedulePage({
       {/* Calendar */}
       <WeekCalendar posts={calendarPosts} weekMonday={weekMonday} />
 
-      {/* Awaiting slot */}
-      {awaitingSlot.length > 0 && (
-        <div className="mt-8">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-              Approved — no calendar slot yet ({awaitingSlot.length})
-            </p>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            {awaitingSlot.map(post => (
-              <Link
-                key={post.id}
-                href={`/posts/${post.id}`}
-                className="flex items-center justify-between bg-white/3 hover:bg-white/6 border border-white/5 hover:border-white/10 rounded-lg px-4 py-3 transition-colors group"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm text-white group-hover:text-emerald-300 transition-colors truncate">
-                    {post.title}
-                  </p>
-                  <p className="text-xs text-gray-600 mt-0.5">
-                    {post.post_type}{post.creative_angle ? ` · ${post.creative_angle}` : ""} · {post.target_platforms.join(", ")}
-                  </p>
-                </div>
-                <span className="text-xs text-gray-700 shrink-0 ml-4 group-hover:text-gray-500">→</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

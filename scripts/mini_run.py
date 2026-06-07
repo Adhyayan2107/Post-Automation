@@ -112,53 +112,46 @@ async def mini_run() -> None:
         print(f"  Saved [{post.post_type}] id={post.id}")
     print()
 
-    # ── Step 6: Auto-approve ──────────────────────────────────────────────
-    print("Step 6: Auto-approving posts...")
-    for post in saved:
-        await post_repo.update_status(post.id, PostStatus.APPROVED)
-        print(f"  Approved: {post.id}")
+    # ── Step 6: Assign time slots ─────────────────────────────────────────
+    print("Step 6: Assigning time slots...")
+    from scheduler.time_optimizer import TimeOptimizer
+
+    optimizer = TimeOptimizer()
+
+    existing = await post_repo.get_future_scheduled()
+    already_used: dict[str, list] = {"reddit": [], "discord": []}
+    for ep in existing:
+        if ep.scheduled_at is None:
+            continue
+        for platform in (ep.target_platforms or []):
+            if platform in already_used:
+                already_used[platform].append(ep.scheduled_at)
+
+    all_slots = optimizer.get_slots_for_week(saved, already_used=already_used)
+    post_map = {p.id: p for p in saved}
+
+    for slot in all_slots:
+        post = post_map[slot.post_id]
+        await post_repo.set_slot(post.id, slot.scheduled_at)
+        print(f"  📅 [{slot.platform:7}] {slot.scheduled_at.strftime('%a %d %b %H:%M UTC')}  {post.title[:45]}")
     print()
 
-    # ── Step 7: Schedule to Google Calendar ───────────────────────────────
+    # ── Step 7: Google Calendar events (optional) ─────────────────────────
     creds_exist = os.path.exists("credentials.json") or os.path.exists("token.json")
     if creds_exist:
-        print("Step 7: Scheduling to Google Calendar...")
+        print("Step 7: Creating Google Calendar events...")
         from scheduler.google_calendar import GoogleCalendarScheduler
-        from scheduler.time_optimizer import TimeOptimizer
-
-        optimizer = TimeOptimizer()
         calendar = GoogleCalendarScheduler()
-
-        # Mark all posts approved before computing slots so the optimizer
-        # sees the full batch and spreads them across different days/times.
-        for post in saved:
-            post.status = PostStatus.APPROVED
-
-        # Load already-scheduled posts so the optimizer doesn't reuse taken slots.
-        existing = await post_repo.get_future_scheduled()
-        already_used: dict[str, list] = {"reddit": [], "discord": []}
-        for ep in existing:
-            if ep.scheduled_at is None:
-                continue
-            for platform in (ep.target_platforms or []):
-                if platform in already_used:
-                    already_used[platform].append(ep.scheduled_at)
-
-        all_slots = optimizer.get_slots_for_week(saved, already_used=already_used)
-        post_map = {p.id: p for p in saved}
-
         for slot in all_slots:
             post = post_map[slot.post_id]
             try:
-                event_id = calendar.create_event(slot, post)
-                await post_repo.update_schedule(post.id, slot.scheduled_at)
-                print(f"  📅 [{slot.platform:7}] {slot.scheduled_at.strftime('%a %d %b %H:%M UTC')}  {post.title[:45]}")
+                calendar.create_event(slot, post)
+                print(f"  ✓ [{slot.platform}] {post.title[:50]}")
             except Exception as exc:
-                print(f"  ✗ Calendar failed for {slot.post_id} on {slot.platform}: {exc}")
+                print(f"  ✗ Calendar failed for {slot.post_id}: {exc}")
+        print()
     else:
-        print("Step 7: Skipping Google Calendar (no credentials.json / token.json found)")
-        print("  → To enable: download credentials.json from Google Cloud Console")
-        print("    and put it in the project root, then re-run this script\n")
+        print("Step 7: Skipping Google Calendar (no credentials — slots saved to DB only)\n")
 
     await run_log_repo.finish_run(run_id, len(saved))
 
