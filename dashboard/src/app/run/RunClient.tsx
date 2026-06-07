@@ -106,7 +106,8 @@ export function RunClient({ initialCache }: { initialCache: CacheStatus }) {
     }
 
     if (!resp.ok) {
-      setLines(l => [...l, { text: await resp.text(), stream: "error" }])
+      const errText = await resp.text()
+      setLines(l => [...l, { text: errText, stream: "error" }])
       setLocalState("failed")
       return
     }
