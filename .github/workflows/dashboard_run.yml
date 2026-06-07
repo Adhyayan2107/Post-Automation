@@ -1,0 +1,38 @@
+name: EduBot Dashboard Run
+
+on:
+  workflow_dispatch:
+
+jobs:
+  mini-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install packages
+        run: |
+          source $HOME/.local/bin/env
+          uv sync
+
+      - name: Run mini_run.py
+        run: |
+          source $HOME/.local/bin/env
+          uv run python scripts/mini_run.py
+        env:
+          ANTHROPIC_API_KEY:         ${{ secrets.ANTHROPIC_API_KEY }}
+          PEXELS_API_KEY:            ${{ secrets.PEXELS_API_KEY }}
+          UNSPLASH_ACCESS_KEY:       ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY:         ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LOG_LEVEL:                 INFO
+          DRY_RUN:                   "false"
