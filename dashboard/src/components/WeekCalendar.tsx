@@ -119,9 +119,6 @@ function PostModal({ post, onClose }: { post: Post; onClose: () => void }) {
                   </button>
                 )}
               </div>
-              {post.gcal_event_id && (
-                <p className="text-[10px] text-gray-700 mt-1.5">Google Calendar event will be updated</p>
-              )}
             </div>
           )}
 

@@ -136,24 +136,6 @@ async def mini_run() -> None:
         print(f"  📅 [{slot.platform:7}] {slot.scheduled_at.strftime('%a %d %b %H:%M UTC')}  {post.title[:45]}")
     print()
 
-    # ── Step 7: Google Calendar events (optional) ─────────────────────────
-    creds_exist = os.path.exists("credentials.json") or os.path.exists("token.json")
-    if creds_exist:
-        print("Step 7: Creating Google Calendar events...")
-        from scheduler.google_calendar import GoogleCalendarScheduler
-        calendar = GoogleCalendarScheduler()
-        for slot in all_slots:
-            post = post_map[slot.post_id]
-            try:
-                event_id = calendar.create_event(slot, post)
-                await post_repo.set_gcal_event_id(post.id, event_id)
-                print(f"  ✓ [{slot.platform}] {post.title[:50]}")
-            except Exception as exc:
-                print(f"  ✗ Calendar failed for {slot.post_id}: {exc}")
-        print()
-    else:
-        print("Step 7: Skipping Google Calendar (no credentials — slots saved to DB only)\n")
-
     await run_log_repo.finish_run(run_id, len(saved))
 
     # ── Summary ────────────────────────────────────────────────────────────

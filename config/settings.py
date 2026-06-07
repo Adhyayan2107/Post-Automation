@@ -33,19 +33,6 @@ class DiscordSettings(BaseSettings):
     webhook_url: str = Field(default="")
 
 
-class GoogleSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=ENV_FILE, env_file_encoding=ENV_ENC,
-        env_prefix="GOOGLE_", extra="ignore",
-        populate_by_name=True,
-    )
-    client_id: str = Field(default="")
-    client_secret: str = Field(default="")
-    calendar_id: str = Field(default="")
-    redirect_uri: str = Field(default="http://localhost:8080")
-    # GMAIL_NOTIFY_ADDRESS has no GOOGLE_ prefix in .env
-    gmail_notify_address: str = Field(default="", alias="GMAIL_NOTIFY_ADDRESS")
-
 
 class PexelsSettings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -99,7 +86,6 @@ class Settings(BaseSettings):
     claude: ClaudeSettings = Field(default_factory=ClaudeSettings)
     reddit: RedditSettings = Field(default_factory=RedditSettings)
     discord: DiscordSettings = Field(default_factory=DiscordSettings)
-    google: GoogleSettings = Field(default_factory=GoogleSettings)
     pexels: PexelsSettings = Field(default_factory=PexelsSettings)
     unsplash: UnsplashSettings = Field(default_factory=UnsplashSettings)
     tmdb: TmdbSettings = Field(default_factory=TmdbSettings)
