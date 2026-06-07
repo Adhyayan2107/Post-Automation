@@ -4,12 +4,6 @@ import path from "path"
 export const runtime = "nodejs"
 
 export async function POST() {
-  if (process.env.VERCEL) {
-    return new Response("Run pipeline is only available in local development.", {
-      status: 403,
-    })
-  }
-
   const projectRoot = path.resolve(process.cwd(), "..")
   const encoder = new TextEncoder()
 
