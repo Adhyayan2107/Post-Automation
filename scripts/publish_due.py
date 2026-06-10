@@ -23,7 +23,7 @@ setup_logging("INFO")
 
 from core.models.post import PostStatus
 from publishers.discord import DiscordPublisher
-from publishers.reddit import RedditPublisher
+from publishers.reddit_browser import RedditBrowserPublisher
 from storage.database import get_supabase_service_client
 from storage.repositories.post_repository import PostRepository
 
@@ -51,10 +51,10 @@ async def publish_due() -> None:
         publishers["discord"] = DiscordPublisher()
         print("  ✓ Discord publisher ready")
 
-    reddit_configured = bool(settings.reddit.client_id and settings.reddit.username)
+    reddit_configured = bool(settings.reddit.username and settings.reddit.password)
     if reddit_configured:
-        publishers["reddit"] = RedditPublisher()
-        print("  ✓ Reddit publisher ready")
+        publishers["reddit"] = RedditBrowserPublisher()
+        print("  ✓ Reddit publisher ready (browser mode)")
     else:
         print("  ⚠ Reddit credentials not set — skipping Reddit")
 

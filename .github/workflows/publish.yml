@@ -25,6 +25,9 @@ jobs:
       - name: Install packages
         run: uv sync
 
+      - name: Install Playwright browser
+        run: uv run playwright install chromium --with-deps
+
       - name: Publish due posts
         run: uv run python scripts/publish_due.py
         env:
