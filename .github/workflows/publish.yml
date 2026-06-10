@@ -2,8 +2,8 @@ name: EduBot Publish Due Posts
 
 on:
   schedule:
-    - cron: "0 * * * *"   # every hour on the hour
-  workflow_dispatch:        # also allow manual trigger from GitHub UI
+    - cron: "0 * * * *"   # every hour (best-effort — GitHub may delay)
+  workflow_dispatch:        # manual trigger from GitHub UI or dashboard
 
 jobs:
   publish:

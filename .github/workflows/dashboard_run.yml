@@ -23,14 +23,30 @@ jobs:
       - name: Install packages
         run: uv sync
 
-      - name: Run mini_run.py
+      - name: Generate new posts
         run: uv run python scripts/mini_run.py
         env:
-          ANTHROPIC_API_KEY:         ${{ secrets.ANTHROPIC_API_KEY }}
-          PEXELS_API_KEY:            ${{ secrets.PEXELS_API_KEY }}
-          UNSPLASH_ACCESS_KEY:       ${{ secrets.UNSPLASH_ACCESS_KEY }}
-          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY:         ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          LOG_LEVEL:                 INFO
-          DRY_RUN:                   "false"
+          ANTHROPIC_API_KEY:           ${{ secrets.ANTHROPIC_API_KEY }}
+          PEXELS_API_KEY:              ${{ secrets.PEXELS_API_KEY }}
+          UNSPLASH_ACCESS_KEY:         ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          SUPABASE_URL:                ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY:           ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY:   ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LOG_LEVEL:                   INFO
+          DRY_RUN:                     "false"
+
+      - name: Publish overdue posts
+        run: uv run python scripts/publish_due.py
+        env:
+          DISCORD_WEBHOOK_EDUCATIONAL: ${{ secrets.DISCORD_WEBHOOK_EDUCATIONAL }}
+          DISCORD_WEBHOOK_CREATIVE:    ${{ secrets.DISCORD_WEBHOOK_CREATIVE }}
+          REDDIT_CLIENT_ID:            ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET:        ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USERNAME:             ${{ secrets.REDDIT_USERNAME }}
+          REDDIT_PASSWORD:             ${{ secrets.REDDIT_PASSWORD }}
+          REDDIT_USER_AGENT:           "EduBot/1.0"
+          SUPABASE_URL:                ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY:           ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY:   ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LOG_LEVEL:                   INFO
+          DRY_RUN:                     "false"

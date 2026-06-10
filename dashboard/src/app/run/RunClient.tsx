@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import {
   Play, Terminal, CheckCircle2, XCircle, Loader2,
   Database, DollarSign, Layers, Clock, AlertTriangle,
-  GitBranch, ExternalLink, Circle,
+  GitBranch, ExternalLink, Circle, Send,
 } from "lucide-react"
 import { formatDistanceToNow, parseISO } from "date-fns"
 
@@ -63,14 +63,19 @@ export function RunClient({ initialCache }: { initialCache: CacheStatus }) {
   const [lines, setLines]             = useState<LogLine[]>([])
   const bottomRef                     = useRef<HTMLDivElement>(null)
 
-  // GitHub run
+  // GitHub run (generate)
   const [ghState, setGhState]       = useState<GHState>("idle")
   const [steps, setSteps]           = useState<Step[]>([])
   const [runUrl, setRunUrl]         = useState<string | null>(null)
   const [ghError, setGhError]       = useState<string | null>(null)
   const pollRef                     = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const busy = localState === "running" || ghState === "dispatching" || ghState === "running"
+  // Publish due button
+  const [pubState, setPubState]     = useState<"idle" | "running" | "done" | "failed">("idle")
+  const [pubUrl, setPubUrl]         = useState<string | null>(null)
+  const [pubError, setPubError]     = useState<string | null>(null)
+
+  const busy = localState === "running" || ghState === "dispatching" || ghState === "running" || pubState === "running"
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -194,6 +199,44 @@ export function RunClient({ initialCache }: { initialCache: CacheStatus }) {
     pollRef.current = setInterval(poll, 4000)
   }
 
+  // ── Publish due ──────────────────────────────────────────────────────────
+
+  async function handlePublishDue() {
+    if (busy) return
+    setPubState("running")
+    setPubUrl(null)
+    setPubError(null)
+
+    const resp = await fetch("/api/github-publish", { method: "POST" })
+    const data: { runId?: number; runUrl?: string; error?: string } = await resp.json()
+
+    if (!resp.ok || data.error) {
+      setPubError(data.error ?? "Unknown error")
+      setPubState("failed")
+      return
+    }
+
+    setPubUrl(data.runUrl ?? null)
+
+    const poll = async () => {
+      try {
+        const statusResp = await fetch(`/api/github-status?runId=${data.runId}`)
+        if (!statusResp.ok) return
+        const status: { status: string; conclusion: string | null } = await statusResp.json()
+        if (status.status === "completed") {
+          setPubState(status.conclusion === "success" ? "done" : "failed")
+          if (pubPollRef.current) clearInterval(pubPollRef.current)
+          pubPollRef.current = null
+        }
+      } catch { /* keep polling */ }
+    }
+
+    poll()
+    pubPollRef.current = setInterval(poll, 4000)
+  }
+
+  const pubPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
   // ── Derived ──────────────────────────────────────────────────────────────
 
   const cacheAge = cache.lastScrapedAt
@@ -216,6 +259,24 @@ export function RunClient({ initialCache }: { initialCache: CacheStatus }) {
 
         {/* Buttons */}
         <div className="flex items-start gap-3 shrink-0">
+          {/* Publish Due */}
+          <div className="flex flex-col items-center gap-1">
+            <button
+              onClick={handlePublishDue}
+              disabled={busy}
+              className="flex items-center gap-2 px-4 py-2.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 hover:border-purple-500/50 disabled:opacity-40 disabled:cursor-not-allowed text-purple-300 hover:text-purple-200 font-semibold text-sm rounded-xl transition-colors"
+            >
+              {pubState === "running"
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Send className="w-4 h-4" />
+              }
+              {pubState === "running" ? "Publishing…" : pubState === "done" ? "Published!" : "Publish Due Now"}
+            </button>
+            <span className="text-[10px] text-gray-700">sends overdue approved posts</span>
+          </div>
+
+          <div className="w-px h-10 bg-white/8 mt-0.5" />
+
           {/* GitHub Actions */}
           <div className="flex flex-col items-center gap-1">
             <button
@@ -367,6 +428,30 @@ export function RunClient({ initialCache }: { initialCache: CacheStatus }) {
           </div>
         </div>
       </div>
+
+      {/* ── Publish Due status ── */}
+      {pubState !== "idle" && (
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm ${
+          pubState === "running" ? "bg-purple-500/5 border-purple-500/20 text-purple-300" :
+          pubState === "done"    ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-300" :
+                                   "bg-red-500/5 border-red-500/20 text-red-300"
+        }`}>
+          {pubState === "running" && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+          {pubState === "done"    && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+          {pubState === "failed"  && <XCircle className="w-4 h-4 shrink-0" />}
+          <span>
+            {pubState === "running" ? "Publishing overdue posts to Discord…" :
+             pubState === "done"    ? "Done — check Discord and the Published tab." :
+             `Publish failed: ${pubError ?? "unknown error"}`}
+          </span>
+          {pubUrl && (
+            <a href={pubUrl} target="_blank" rel="noopener noreferrer"
+               className="ml-auto flex items-center gap-1 text-xs opacity-60 hover:opacity-100">
+              View run <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+        </div>
+      )}
 
       {/* ── GitHub Actions checkpoints ── */}
       {ghState !== "idle" && (
