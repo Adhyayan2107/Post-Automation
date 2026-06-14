@@ -28,6 +28,10 @@ jobs:
       - name: Install Playwright browser
         run: uv run playwright install chromium --with-deps
 
+      - name: Restore Reddit session
+        if: ${{ secrets.REDDIT_SESSION != '' }}
+        run: echo '${{ secrets.REDDIT_SESSION }}' > reddit_session.json
+
       - name: Publish due posts
         run: uv run python scripts/publish_due.py
         env:

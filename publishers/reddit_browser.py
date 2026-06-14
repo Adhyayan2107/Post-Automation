@@ -93,8 +93,12 @@ class RedditBrowserPublisher(AbstractPublisher):
     async def _is_logged_in(self, ctx: BrowserContext) -> bool:
         page = await ctx.new_page()
         try:
-            await page.goto("https://www.reddit.com/", timeout=15000)
-            await page.wait_for_load_state("domcontentloaded")
+            await page.goto("https://www.reddit.com/", timeout=20000)
+            # Wait for React to finish rendering (username is loaded via API call)
+            try:
+                await page.wait_for_load_state("networkidle", timeout=15000)
+            except Exception:
+                await page.wait_for_load_state("domcontentloaded")
             html = await page.content()
             return self._username.lower() in html.lower()
         except Exception:

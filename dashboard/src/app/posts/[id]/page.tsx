@@ -72,13 +72,6 @@ export default async function PostDetailPage({
         </div>
       )}
 
-      {/* Body */}
-      <div className="bg-white/3 border border-white/6 rounded-xl p-5 mb-5">
-        <pre className="whitespace-pre-wrap text-sm text-gray-300 font-sans leading-relaxed">
-          {post.body}
-        </pre>
-      </div>
-
       {/* Sources */}
       {post.source_urls.length > 0 && (
         <div className="mb-5">
